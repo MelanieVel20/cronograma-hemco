@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma SCADA HEMCO – Vista Pública</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        body { background: #f5f7fb; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 1600px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 30px -12px rgba(30,58,138,0.15); padding: 28px 30px; border-top: 5px solid #1e3a8a; }
+        h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem 0; display: flex; align-items: center; gap: 12px; color: #1e3a8a; }
+        h1 i { color: #c8102e; }
+        .subhead { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .project-meta { font-size: 0.9rem; color: #1e3a8a; background: #dbeafe; padding: 6px 14px; border-radius: 40px; font-weight: 500; }
+        .badge-view { font-size: 0.7rem; background: #94a3b8; color: white; padding: 2px 10px; border-radius: 30px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+        .updated { font-size: 0.75rem; color: #64748b; margin-left: 10px; }
+
+        .table-wrapper { overflow: auto; max-height: 480px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 32px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 1100px; table-layout: fixed; }
+        th { background: #1e3a8a; color: white; padding: 10px 8px; text-align: left; position: sticky; top: 0; font-size: 0.75rem; text-transform: uppercase; white-space: nowrap; }
+        td { padding: 8px; border-bottom: 1px solid #eff6ff; }
+        .cell { padding: 4px 6px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .task-hito { font-weight: 600; color: #c8102e; }
+        .task-resumen { font-style: italic; color: #475569; }
+
+        .gantt-container { background: #fff; border-radius: 12px; padding: 18px 16px 8px 16px; border: 1px solid #dbeafe; margin-top: 10px; position: relative; overflow-x: auto; overflow-y: hidden; }
+        .gantt-container::-webkit-scrollbar { height: 12px; }
+        .gantt-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
+        .gantt-container::-webkit-scrollbar-thumb { background: #1e3a8a; border-radius: 6px; }
+        .gantt-container svg { min-width: 100%; height: auto; }
+        .gantt .bar-label { display: none !important; }
+        .gantt .bar-task { fill: #1e3a8a !important; stroke: #1e40af !important; }
+        .gantt .bar-hito { fill: #c8102e !important; stroke: #a6192e !important; }
+        .gantt .bar-resumen { fill: #94a3b8 !important; stroke: #64748b !important; }
+        /* Solo lectura: sin arrastre ni redimensionado de barras */
+        #gantt .bar-wrapper { pointer-events: none; }
+        .gantt-label-overlay { position: absolute; pointer-events: none; z-index: 30; white-space: nowrap; font-size: 11.5px; font-weight: 500; padding: 3px 8px; border-radius: 5px; transform: translateY(-50%); }
+        .label-tarea { background: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
+        .label-hito { background: #fee2e2; color: #a6192e; border: 1px solid #fca5a5; }
+        .label-resumen { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-style: italic; }
+        .legend { display: flex; gap: 24px; margin: 12px 0 8px 0; font-size: 0.8rem; color: #1e3a8a; }
+        .legend-color { width: 20px; height: 14px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+        .legend-color.tarea { background: #1e3a8a; }
+        .legend-color.hito { background: #c8102e; width: 14px; height: 14px; border-radius: 50%; transform: rotate(45deg); }
+        .legend-color.resumen { background: #94a3b8; height: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1><i class="fas fa-chart-gantt"></i> Cronograma SCADA HEMCO</h1>
+    <div class="subhead">
+        <div class="project-meta"><i class="fas fa-calendar-alt"></i> <span id="projectDate">Mon 28/9/26</span></div>
+        <div><span class="badge-view">Solo lectura</span><span class="updated" id="updatedAt"></span></div>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="taskTable">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">ID</th>
+                    <th style="width: 380px;">Nombre de tarea</th>
+                    <th style="width: 110px;">Duración</th>
+                    <th style="width: 120px;">Inicio</th>
+                    <th style="width: 120px;">Fin</th>
+                    <th style="width: 100px;">Tipo</th>
+                    <th style="width: 90px;">Progreso</th>
+                </tr>
+            </thead>
+            <tbody id="taskTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="gantt-container" id="ganttContainer">
+        <h3 style="font-weight: 600; font-size: 1.05rem; color: #1e3a8a;"><i class="fas fa-bars-progress" style="color: #c8102e;"></i> Diagrama de Gantt</h3>
+        <div class="legend">
+            <span><span class="legend-color tarea"></span>Tarea</span>
+            <span><span class="legend-color hito"></span>Hito</span>
+            <span><span class="legend-color resumen"></span>Resumen</span>
+        </div>
+        <div id="gantt" style="position: relative;"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
+<script>
+(function() {
+    const tbody = document.getElementById('taskTableBody');
+    const ganttEl = document.getElementById('gantt');
+    let currentTasks = [];
+    let ganttSource = [];
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const pad = n => String(n).padStart(2, '0');
+    const addDaysISO = (iso, n) => { const [y,m,d] = iso.split('-').map(Number); const x = new Date(y, m-1, d+n); return `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`; };
+
+    // Siempre la versión más reciente publicada (sin caché)
+    function load() {
+        fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => {
+                const json = JSON.stringify(data);
+                if (json === JSON.stringify(currentTasks)) return;   // sin cambios
+                currentTasks = Array.isArray(data) ? data : [];
+                renderTable(currentTasks);
+                renderGantt();
+                document.getElementById('updatedAt').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' });
+            })
+            .catch(() => {
+                if (!currentTasks.length)
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">No se pudo cargar data.json</td></tr>';
+            });
+    }
+
+    function renderTable(tasks) {
+        tbody.innerHTML = '';
+        if (tasks.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">No hay tareas publicadas.</td></tr>';
+            return;
+        }
+        tasks.forEach(task => {
+            const tr = document.createElement('tr');
+            const typeClass = task.type === 'hito' ? 'task-hito' : task.type === 'resumen' ? 'task-resumen' : '';
+            tr.innerHTML = `
+                <td><span class="cell">${esc(task.id)}</span></td>
+                <td><span class="cell ${typeClass}" title="${esc(task.name)}">${esc(task.name)}</span></td>
+                <td><span class="cell">${esc(task.duration)}</span></td>
+                <td><span class="cell">${esc(task.start)}</span></td>
+                <td><span class="cell">${esc(task.finish)}</span></td>
+                <td><span class="cell">${esc(task.type || 'tarea')}</span></td>
+                <td><span class="cell">${esc(task.progress || 0)}%</span></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function buildGanttTasks(tasks) {
+        ganttSource = tasks.filter(t => t.name && t.start && t.finish);
+        return ganttSource.map((t, i) => {
+            let cc = 'bar-task';
+            if (t.type === 'hito') cc = 'bar-hito';
+            if (t.type === 'resumen') cc = 'bar-resumen';
+            let end = t.finish;
+            if (t.type === 'hito' && t.start === t.finish) end = addDaysISO(t.start, 1);
+            return { id: String(t.id || 'x' + i), name: t.name.length > 40 ? t.name.substring(0,37) + '...' : t.name,
+                     start: t.start, end, progress: parseInt(t.progress) || 0, dependencies: '', custom_class: cc };
+        });
+    }
+
+    function overlayLabels() {
+        document.querySelectorAll('.gantt-label-overlay').forEach(el => el.remove());
+        const container = document.getElementById('ganttContainer');
+        if (!document.querySelector('#gantt svg')) return;
+        const cRect = container.getBoundingClientRect();
+        document.querySelectorAll('#gantt .bar').forEach((bar, idx) => {
+            const task = ganttSource[idx];
+            if (!task) return;
+            const bRect = bar.getBoundingClientRect();
+            const label = document.createElement('div');
+            label.className = 'gantt-label-overlay ' + (task.type === 'hito' ? 'label-hito' : task.type === 'resumen' ? 'label-resumen' : 'label-tarea');
+            label.textContent = task.name.length > 45 ? task.name.substring(0,42) + '...' : task.name;
+            label.style.left = (bRect.left - cRect.left + container.scrollLeft + bRect.width + 8) + 'px';
+            label.style.top = (bRect.top - cRect.top + bRect.height / 2) + 'px';
+            container.appendChild(label);
+        });
+    }
+
+    function renderGantt() {
+        const tasks = buildGanttTasks(currentTasks);
+        ganttEl.innerHTML = '';
+        document.querySelectorAll('.gantt-label-overlay').forEach(el => el.remove());
+        if (tasks.length === 0) {
+            ganttEl.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">Sin datos.</div>';
+            return;
+        }
+        new Gantt('#gantt', tasks, {
+            header_height: 50, column_width: 30, step: 24, bar_height: 22,
+            bar_corner_radius: 3, padding: 18, view_mode: 'Month',
+            date_format: 'YYYY-MM-DD', language: 'es'
+        });
+        setTimeout(() => {
+            document.querySelectorAll('#gantt .bar').forEach((bar, idx) => {
+                const t = tasks[idx]; if (!t) return;
+                bar.classList.remove('bar-task','bar-hito','bar-resumen');
+                bar.classList.add(t.custom_class);
+            });
+            overlayLabels();
+            const c = document.getElementById('ganttContainer');
+            if (!c.dataset.scrollListener) {
+                c.dataset.scrollListener = 'true';
+                c.addEventListener('scroll', overlayLabels);
+                window.addEventListener('resize', overlayLabels);
+            }
+        }, 150);
+    }
+
+    load();
+    setInterval(load, 120000);   // revisa cambios cada 2 minutos
+})();
+</script>
+</body>
+</html>
