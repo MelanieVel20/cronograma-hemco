@@ -17,6 +17,10 @@
         .project-meta { font-size: 0.9rem; color: #1e3a8a; background: #dbeafe; padding: 6px 14px; border-radius: 40px; font-weight: 500; }
         .badge-view { font-size: 0.7rem; background: #94a3b8; color: white; padding: 2px 10px; border-radius: 30px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
         .updated { font-size: 0.75rem; color: #64748b; margin-left: 10px; }
+        .head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .btn-export { background: #1e7a46; border: 1px solid #1e7a46; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+        .btn-export:hover { background: #17633a; }
+        .btn-export:disabled { opacity: .5; cursor: not-allowed; }
 
         .table-wrapper { overflow: auto; max-height: 480px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 32px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 1100px; table-layout: fixed; }
@@ -53,7 +57,10 @@
     <h1><i class="fas fa-chart-gantt"></i> Cronograma SCADA HEMCO</h1>
     <div class="subhead">
         <div class="project-meta"><i class="fas fa-calendar-alt"></i> <span id="projectDate">Mon 28/9/26</span></div>
-        <div><span class="badge-view">Solo lectura</span><span class="updated" id="updatedAt"></span></div>
+        <div class="head-right">
+            <div><span class="badge-view">Solo lectura</span><span class="updated" id="updatedAt"></span></div>
+            <button class="btn-export" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Exportar a Excel</button>
+        </div>
     </div>
 
     <div class="table-wrapper">
@@ -85,6 +92,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function() {
     const tbody = document.getElementById('taskTableBody');
@@ -194,6 +202,50 @@
             }
         }, 150);
     }
+
+    // ============ EXPORTAR A EXCEL ============
+    // Fecha 'YYYY-MM-DD' -> número de serie de Excel (fecha real, sin desfase de zona horaria)
+    function excelDate(iso) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
+        if (!m) return { t: 's', v: String(iso || '') };
+        const serial = (Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 86400000;
+        return { t: 'n', v: serial, z: 'dd/mm/yyyy' };
+    }
+
+    function exportExcel() {
+        if (!currentTasks.length) return alert('No hay tareas para exportar.');
+        if (typeof XLSX === 'undefined') return alert('No se pudo cargar el componente de Excel. Revisa tu conexión y recarga la página.');
+
+        const tipoTxt = { tarea: 'Tarea', hito: 'Hito', resumen: 'Resumen' };
+        const rows = [['ID', 'Nombre de tarea', 'Duración', 'Inicio', 'Fin', 'Tipo', 'Progreso']];
+        currentTasks.forEach(t => {
+            rows.push([
+                String(t.id ?? ''),
+                String(t.name ?? ''),
+                String(t.duration ?? ''),
+                excelDate(t.start),
+                excelDate(t.finish),
+                tipoTxt[t.type] || t.type || 'Tarea',
+                { t: 'n', v: (parseFloat(t.progress) || 0) / 100, z: '0%' }
+            ]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{ wch: 6 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 11 }, { wch: 10 }];
+        ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length - 1, c: 6 } }) };
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Cronograma');
+        const d = new Date();
+        XLSX.writeFile(wb, `Cronograma_SCADA_HEMCO_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.xlsx`);
+    }
+
+    document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
+    const _renderTable = renderTable;
+    renderTable = function(tasks) {
+        _renderTable(tasks);
+        document.getElementById('exportExcelBtn').disabled = !tasks.length;
+    };
 
     load();
     setInterval(load, 120000);   // revisa cambios cada 2 minutos
