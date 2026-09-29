@@ -18,9 +18,9 @@
         .badge-view { font-size: 0.7rem; background: #94a3b8; color: white; padding: 2px 10px; border-radius: 30px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
         .updated { font-size: 0.75rem; color: #64748b; margin-left: 10px; }
         .head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .btn-export { background: #1e7a46; border: 1px solid #1e7a46; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
-        .btn-export:hover { background: #17633a; }
-        .btn-export:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-excel { background: #1e7a46; border: 1px solid #1e7a46; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+        .btn-excel:hover { background: #17633a; }
+        .btn-excel:disabled { opacity: .5; cursor: not-allowed; }
 
         .table-wrapper { overflow: auto; max-height: 480px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 32px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 1100px; table-layout: fixed; }
@@ -59,7 +59,7 @@
         <div class="project-meta"><i class="fas fa-calendar-alt"></i> <span id="projectDate">Mon 28/9/26</span></div>
         <div class="head-right">
             <div><span class="badge-view">Solo lectura</span><span class="updated" id="updatedAt"></span></div>
-            <button class="btn-export" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Exportar a Excel</button>
+            <button class="btn-excel" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Exportar a Excel</button>
         </div>
     </div>
 
@@ -92,7 +92,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
 (function() {
     const tbody = document.getElementById('taskTableBody');
@@ -123,6 +123,7 @@
     }
 
     function renderTable(tasks) {
+        document.getElementById('exportExcelBtn').disabled = !tasks.length;
         tbody.innerHTML = '';
         if (tasks.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">No hay tareas publicadas.</td></tr>';
@@ -203,49 +204,268 @@
         }, 150);
     }
 
-    // ============ EXPORTAR A EXCEL ============
-    // Fecha 'YYYY-MM-DD' -> número de serie de Excel (fecha real, sin desfase de zona horaria)
-    function excelDate(iso) {
-        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
-        if (!m) return { t: 's', v: String(iso || '') };
-        const serial = (Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 86400000;
-        return { t: 'n', v: serial, z: 'dd/mm/yyyy' };
-    }
+    // ============ EXPORTAR A EXCEL (con formato) ============
+    function buildWorkbook(ExcelJS, tasks, projectDate) {
+        const C = {
+            navy: 'FF1E3A8A', navyDark: 'FF172554', red: 'FFC8102E', redSoft: 'FFFEE2E2',
+            blueSoft: 'FFDBEAFE', blueRow: 'FFF5F8FF', gray: 'FF94A3B8', graySoft: 'FFF1F5F9',
+            text: 'FF1E293B', muted: 'FF64748B', border: 'FFE2E8F0', white: 'FFFFFFFF'
+        };
+        const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+        const thin = { style: 'thin', color: { argb: C.border } };
+        const box = { top: thin, left: thin, bottom: thin, right: thin };
+        const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        const TIPO = { tarea: 'Tarea', hito: 'Hito', resumen: 'Resumen' };
+        const p2 = n => String(n).padStart(2, '0');
+        const toDate = iso => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
+            return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
+        };
+        const now = new Date();
+        const exportado = `${p2(now.getDate())}/${p2(now.getMonth()+1)}/${now.getFullYear()} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
 
-    function exportExcel() {
-        if (!currentTasks.length) return alert('No hay tareas para exportar.');
-        if (typeof XLSX === 'undefined') return alert('No se pudo cargar el componente de Excel. Revisa tu conexión y recarga la página.');
+        const tareas = tasks.filter(t => (t.type || 'tarea') === 'tarea');
+        const hitos = tasks.filter(t => t.type === 'hito');
+        const avance = tareas.length ? tareas.reduce((s, t) => s + (parseFloat(t.progress) || 0), 0) / tareas.length / 100 : 0;
 
-        const tipoTxt = { tarea: 'Tarea', hito: 'Hito', resumen: 'Resumen' };
-        const rows = [['ID', 'Nombre de tarea', 'Duración', 'Inicio', 'Fin', 'Tipo', 'Progreso']];
-        currentTasks.forEach(t => {
-            rows.push([
-                String(t.id ?? ''),
-                String(t.name ?? ''),
-                String(t.duration ?? ''),
-                excelDate(t.start),
-                excelDate(t.finish),
-                tipoTxt[t.type] || t.type || 'Tarea',
-                { t: 'n', v: (parseFloat(t.progress) || 0) / 100, z: '0%' }
-            ]);
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'MISSA'; wb.created = now; wb.title = 'Cronograma SCADA HEMCO';
+
+        // ---------- Hoja 1: Cronograma ----------
+        const ws = wb.addWorksheet('Cronograma', {
+            views: [{ state: 'frozen', ySplit: 5, showGridLines: false }],
+            pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+                         margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 }, printTitlesRow: '5:5' },
+            headerFooter: { oddFooter: '&L&8Cronograma SCADA HEMCO&R&8Página &P de &N' }
+        });
+        ws.columns = [{ width: 7 }, { width: 50 }, { width: 13 }, { width: 13 }, { width: 13 }, { width: 12 }, { width: 11 }, { width: 14 }];
+
+        ws.mergeCells('A1:H1');
+        ws.getCell('A1').value = 'Cronograma SCADA HEMCO';
+        ws.getCell('A1').font = { name: 'Calibri', size: 18, bold: true, color: { argb: C.white } };
+        ws.getCell('A1').fill = fill(C.navy);
+        ws.getCell('A1').alignment = { vertical: 'middle', indent: 1 };
+        ws.getRow(1).height = 36;
+
+        ws.mergeCells('A2:H2');
+        ws.getCell('A2').value = `Fecha del proyecto: ${projectDate || '—'}     ·     Exportado: ${exportado}`;
+        ws.getCell('A2').font = { size: 10, italic: true, color: { argb: C.white } };
+        ws.getCell('A2').fill = fill(C.navyDark);
+        ws.getCell('A2').alignment = { vertical: 'middle', indent: 1 };
+        ws.getRow(2).height = 20;
+
+        // Fila de indicadores
+        const kpis = [['A3:B3', `Actividades: ${tasks.length}`], ['C3:D3', `Hitos: ${hitos.length}`], ['E3:H3', null]];
+        kpis.forEach(([rng, txt]) => {
+            ws.mergeCells(rng);
+            const cell = ws.getCell(rng.split(':')[0]);
+            cell.value = txt;
+            cell.font = { bold: true, size: 11, color: { argb: C.navy } };
+            cell.fill = fill(C.blueSoft);
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
+        ws.getCell('E3').value = { richText: [
+            { text: 'Avance promedio de tareas: ', font: { bold: true, size: 11, color: { argb: C.navy } } },
+            { text: `${Math.round(avance * 100)}%`, font: { bold: true, size: 12, color: { argb: C.red } } }
+        ] };
+        ws.getRow(3).height = 24;
+        ws.getRow(4).height = 6;
+
+        const header = ws.getRow(5);
+        header.values = ['ID', 'Nombre de tarea', 'Duración', 'Inicio', 'Fin', 'Tipo', 'Progreso', 'Estado'];
+        header.height = 24;
+        header.eachCell(cell => {
+            cell.font = { bold: true, color: { argb: C.white }, size: 11 };
+            cell.fill = fill(C.navy);
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = { top: thin, left: thin, right: thin, bottom: { style: 'medium', color: { argb: C.red } } };
         });
 
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{ wch: 6 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 11 }, { wch: 10 }];
-        ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length - 1, c: 6 } }) };
+        let r = 6;
+        tasks.forEach((t, i) => {
+            const type = t.type || 'tarea';
+            const row = ws.getRow(r);
+            row.values = [
+                String(t.id ?? ''),
+                (type === 'hito' ? '◆ ' : '') + String(t.name ?? ''),
+                String(t.duration ?? ''),
+                toDate(t.start) || String(t.start ?? ''),
+                toDate(t.finish) || String(t.finish ?? ''),
+                TIPO[type] || type,
+                (parseFloat(t.progress) || 0) / 100,
+                ''
+            ];
+            row.height = 20;
+            const bg = type === 'resumen' ? C.graySoft : type === 'hito' ? 'FFFFF5F5' : (i % 2 ? C.blueRow : C.white);
+            row.eachCell({ includeEmpty: true }, (cell, col) => {
+                cell.fill = fill(bg);
+                cell.border = box;
+                cell.alignment = { vertical: 'middle', horizontal: col === 2 ? 'left' : 'center', indent: col === 2 ? 1 : 0 };
+                cell.font = { size: 10.5, color: { argb: C.text } };
+                if (type === 'resumen') cell.font = { size: 10.5, bold: true, italic: true, color: { argb: 'FF334155' } };
+                if (type === 'hito') cell.font = { size: 10.5, bold: true, color: { argb: C.red } };
+            });
+            row.getCell(4).numFmt = 'dd/mm/yyyy';
+            row.getCell(5).numFmt = 'dd/mm/yyyy';
+            row.getCell(7).numFmt = '0%';
+            const tipoCell = row.getCell(6);
+            tipoCell.font = { size: 9.5, bold: true, color: { argb: type === 'hito' ? C.red : type === 'resumen' ? C.muted : C.navy } };
+            // Estado según avance (colores fijos: abren bien en cualquier Excel)
+            const pct = parseFloat(t.progress) || 0;
+            const est = pct >= 100 ? (type === 'hito' ? ['Cumplido', 'FFDCFCE7', 'FF166534'] : ['Completado', 'FFDCFCE7', 'FF166534'])
+                      : pct > 0 ? ['En curso', 'FFFEF3C7', 'FF92400E'] : ['Pendiente', C.graySoft, C.muted];
+            const estCell = row.getCell(8);
+            estCell.value = est[0];
+            estCell.fill = fill(est[1]);
+            estCell.font = { size: 9.5, bold: true, color: { argb: est[2] } };
+            const pCell = row.getCell(7);
+            pCell.fill = fill(est[1]);
+            pCell.font = { size: 10.5, bold: true, color: { argb: est[2] } };
+            r++;
+        });
+        const last = r - 1;
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Cronograma');
-        const d = new Date();
-        XLSX.writeFile(wb, `Cronograma_SCADA_HEMCO_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.xlsx`);
+        if (last >= 6) ws.autoFilter = { from: 'A5', to: `H${last}` };
+
+        ws.mergeCells(`A${last + 2}:H${last + 2}`);
+        ws.getCell(`A${last + 2}`).value = 'Generado desde el cronograma en línea. Los datos corresponden a la última versión publicada.';
+        ws.getCell(`A${last + 2}`).font = { size: 9, italic: true, color: { argb: C.muted } };
+
+        // ---------- Hoja 2: Gantt semanal ----------
+        const dated = tasks.map(t => ({ t, s: toDate(t.start), f: toDate(t.finish) })).filter(x => x.s && x.f);
+        if (dated.length) {
+            const DAY = 86400000;
+            const minS = new Date(Math.min(...dated.map(x => x.s.getTime())));
+            const maxF = new Date(Math.max(...dated.map(x => x.f.getTime())));
+            const monday = new Date(minS.getTime() - ((minS.getUTCDay() + 6) % 7) * DAY);
+            const weeks = [];
+            for (let w = monday.getTime(); w <= maxF.getTime() && weeks.length < 260; w += 7 * DAY) weeks.push(new Date(w));
+
+            const FIRST = 5;   // primera columna de semanas (E)
+            const lastCol = FIRST + weeks.length - 1;
+            const gs = wb.addWorksheet('Gantt', {
+                views: [{ state: 'frozen', xSplit: 4, ySplit: 4, showGridLines: false }],
+                pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+                             margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 }, printTitlesRow: '3:4' }
+            });
+            gs.getColumn(1).width = 6; gs.getColumn(2).width = 40; gs.getColumn(3).width = 11; gs.getColumn(4).width = 11;
+            weeks.forEach((_, i) => { gs.getColumn(FIRST + i).width = 5.2; });
+
+            gs.mergeCells(1, 1, 1, lastCol);
+            gs.getCell(1, 1).value = 'Diagrama de Gantt · SCADA HEMCO (vista semanal)';
+            gs.getCell(1, 1).font = { size: 16, bold: true, color: { argb: C.white } };
+            gs.getCell(1, 1).fill = fill(C.navy);
+            gs.getCell(1, 1).alignment = { vertical: 'middle', indent: 1 };
+            gs.getRow(1).height = 32;
+
+            // Leyenda
+            gs.mergeCells(2, 1, 2, lastCol);
+            gs.getCell(2, 1).value = { richText: [
+                { text: '■ ', font: { color: { argb: C.navy }, size: 12 } }, { text: 'Tarea     ', font: { size: 10, color: { argb: C.text } } },
+                { text: '■ ', font: { color: { argb: C.gray }, size: 12 } }, { text: 'Resumen     ', font: { size: 10, color: { argb: C.text } } },
+                { text: '◆ ', font: { color: { argb: C.red }, size: 12 } }, { text: 'Hito     ', font: { size: 10, color: { argb: C.text } } },
+                { text: `Exportado: ${exportado}`, font: { size: 9, italic: true, color: { argb: C.muted } } }
+            ] };
+            gs.getCell(2, 1).fill = fill(C.blueSoft);
+            gs.getCell(2, 1).alignment = { vertical: 'middle', indent: 1 };
+            gs.getRow(2).height = 20;
+
+            // Encabezados: meses (fila 3) y semanas (fila 4)
+            ['ID', 'Actividad', 'Inicio', 'Fin'].forEach((h, i) => {
+                gs.mergeCells(3, i + 1, 4, i + 1);
+                const c = gs.getCell(3, i + 1);
+                c.value = h;
+                c.font = { bold: true, color: { argb: C.white } };
+                c.fill = fill(C.navy);
+                c.alignment = { vertical: 'middle', horizontal: 'center' };
+                c.border = box;
+            });
+            let startIdx = 0;
+            for (let i = 1; i <= weeks.length; i++) {
+                const cur = weeks[startIdx], nxt = weeks[i];
+                if (i === weeks.length || nxt.getUTCMonth() !== cur.getUTCMonth()) {
+                    const c1 = FIRST + startIdx, c2 = FIRST + i - 1;
+                    if (c2 > c1) gs.mergeCells(3, c1, 3, c2);
+                    const c = gs.getCell(3, c1);
+                    c.value = `${MESES[cur.getUTCMonth()]} ${cur.getUTCFullYear()}`;
+                    c.font = { bold: true, color: { argb: C.white }, size: 10 };
+                    c.fill = fill(C.navyDark);
+                    c.alignment = { horizontal: 'center', vertical: 'middle' };
+                    c.border = box;
+                    startIdx = i;
+                }
+            }
+            weeks.forEach((w, i) => {
+                const c = gs.getCell(4, FIRST + i);
+                c.value = p2(w.getUTCDate());
+                c.font = { size: 8.5, bold: true, color: { argb: C.navy } };
+                c.fill = fill(C.blueSoft);
+                c.alignment = { horizontal: 'center', vertical: 'middle' };
+                c.border = box;
+            });
+            gs.getRow(3).height = 18; gs.getRow(4).height = 16;
+
+            dated.forEach(({ t, s, f }, i) => {
+                const row = 5 + i, type = t.type || 'tarea';
+                const r0 = gs.getRow(row);
+                r0.height = 18;
+                const vals = [String(t.id ?? ''), (type === 'hito' ? '◆ ' : '') + String(t.name ?? ''), s, f];
+                vals.forEach((v, k) => {
+                    const c = gs.getCell(row, k + 1);
+                    c.value = v;
+                    c.border = box;
+                    c.alignment = { vertical: 'middle', horizontal: k === 1 ? 'left' : 'center', indent: k === 1 ? 1 : 0 };
+                    c.font = { size: 10, color: { argb: type === 'hito' ? C.red : C.text }, bold: type !== 'tarea', italic: type === 'resumen' };
+                    if (type === 'resumen') c.fill = fill(C.graySoft);
+                });
+                gs.getCell(row, 3).numFmt = 'dd/mm/yy';
+                gs.getCell(row, 4).numFmt = 'dd/mm/yy';
+                weeks.forEach((w, k) => {
+                    const c = gs.getCell(row, FIRST + k);
+                    const wEnd = w.getTime() + 6 * DAY;
+                    const vBorder = { left: { style: 'hair', color: { argb: C.border } }, right: { style: 'hair', color: { argb: C.border } },
+                                      top: thin, bottom: thin };
+                    c.border = vBorder;
+                    if (type === 'hito') {
+                        if (s.getTime() >= w.getTime() && s.getTime() <= wEnd) {
+                            c.value = '◆';
+                            c.font = { color: { argb: C.red }, bold: true, size: 12 };
+                            c.alignment = { horizontal: 'center', vertical: 'middle' };
+                        }
+                    } else if (w.getTime() <= f.getTime() && wEnd >= s.getTime()) {
+                        c.fill = fill(type === 'resumen' ? C.gray : C.navy);
+                    }
+                });
+            });
+        }
+        return wb;
     }
 
-    document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
-    const _renderTable = renderTable;
-    renderTable = function(tasks) {
-        _renderTable(tasks);
-        document.getElementById('exportExcelBtn').disabled = !tasks.length;
-    };
+    async function exportExcel(tasks) {
+        if (!tasks || !tasks.length) return alert('No hay tareas para exportar.');
+        if (typeof ExcelJS === 'undefined') return alert('No se pudo cargar el componente de Excel. Revisa tu conexión y recarga la página.');
+        const btn = document.getElementById('exportExcelBtn');
+        if (btn) btn.disabled = true;
+        try {
+            const projectDate = (document.getElementById('projectDate') || {}).textContent || '';
+            const wb = buildWorkbook(ExcelJS, tasks, projectDate.trim());
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const d = new Date(), p2 = n => String(n).padStart(2, '0');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Cronograma_SCADA_HEMCO_${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}.xlsx`;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        } catch (e) {
+            alert('No se pudo generar el Excel: ' + e.message);
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    document.getElementById('exportExcelBtn').addEventListener('click', () => exportExcel(currentTasks));
 
     load();
     setInterval(load, 120000);   // revisa cambios cada 2 minutos
