@@ -3,33 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cronograma SCADA HEMCO – Vista Pública</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Cronograma SCADA HEMCO – Edición</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        * { box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
         body { background: #f5f7fb; margin: 0; padding: 24px; color: #1e293b; }
         .container { max-width: 1600px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 30px -12px rgba(30,58,138,0.15); padding: 28px 30px; border-top: 5px solid #1e3a8a; }
         h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem 0; display: flex; align-items: center; gap: 12px; color: #1e3a8a; }
         h1 i { color: #c8102e; }
         .subhead { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
         .project-meta { font-size: 0.9rem; color: #1e3a8a; background: #dbeafe; padding: 6px 14px; border-radius: 40px; font-weight: 500; }
-        .badge-view { font-size: 0.7rem; background: #94a3b8; color: white; padding: 2px 10px; border-radius: 30px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-        .updated { font-size: 0.75rem; color: #64748b; margin-left: 10px; }
-        .head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .btn-export { background: #1e7a46; border: 1px solid #1e7a46; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
-        .btn-export:hover { background: #17633a; }
-        .btn-export:disabled { opacity: .5; cursor: not-allowed; }
-
+        .session { font-size: 0.75rem; padding: 3px 10px; border-radius: 30px; font-weight: 600; margin-left: 8px; }
+        .session.on { background: #dcfce7; color: #166534; }
+        .session.off { background: #f1f5f9; color: #64748b; }
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { background: white; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: #1e3a8a; }
+        .btn:hover { background: #f1f5f9; }
+        .btn:disabled { opacity: .6; cursor: wait; }
+        .btn-success { background: #1e3a8a; border-color: #1e3a8a; color: white; }
+        .btn-success:hover { background: #1e40af; }
+        .btn-warning { background: #c8102e; border-color: #c8102e; color: white; }
+        .btn-warning:hover { background: #a6192e; }
+        .btn-excel { background: #1e7a46; border: 1px solid #1e7a46; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+        .btn-excel:hover { background: #17633a; }
+        .btn-excel:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-secondary { background: #f1f5f9; color: #475569; }
+        .btn-danger { background: #fee2e2; border: 1px solid #fecaca; color: #c8102e; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
         .table-wrapper { overflow: auto; max-height: 480px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 32px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 1100px; table-layout: fixed; }
-        th { background: #1e3a8a; color: white; padding: 10px 8px; text-align: left; position: sticky; top: 0; font-size: 0.75rem; text-transform: uppercase; white-space: nowrap; }
+        th { background: #1e3a8a; color: white; padding: 10px 8px; text-align: left; position: sticky; top: 0; font-size: 0.75rem; text-transform: uppercase; white-space: nowrap; z-index: 2; }
         td { padding: 8px; border-bottom: 1px solid #eff6ff; }
-        .cell { padding: 4px 6px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .editable-cell { outline: none; border-radius: 6px; padding: 4px 6px; width: 100%; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .editable-cell:hover { background: #f1f5f9; }
+        .editable-cell:focus { background: #dbeafe; box-shadow: 0 0 0 2px #1e3a8a40; white-space: normal; }
         .task-hito { font-weight: 600; color: #c8102e; }
         .task-resumen { font-style: italic; color: #475569; }
-
         .gantt-container { background: #fff; border-radius: 12px; padding: 18px 16px 8px 16px; border: 1px solid #dbeafe; margin-top: 10px; position: relative; overflow-x: auto; overflow-y: hidden; }
         .gantt-container::-webkit-scrollbar { height: 12px; }
         .gantt-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
@@ -39,8 +52,6 @@
         .gantt .bar-task { fill: #1e3a8a !important; stroke: #1e40af !important; }
         .gantt .bar-hito { fill: #c8102e !important; stroke: #a6192e !important; }
         .gantt .bar-resumen { fill: #94a3b8 !important; stroke: #64748b !important; }
-        /* Solo lectura: sin arrastre ni redimensionado de barras */
-        #gantt .bar-wrapper { pointer-events: none; }
         .gantt-label-overlay { position: absolute; pointer-events: none; z-index: 30; white-space: nowrap; font-size: 11.5px; font-weight: 500; padding: 3px 8px; border-radius: 5px; transform: translateY(-50%); }
         .label-tarea { background: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
         .label-hito { background: #fee2e2; color: #a6192e; border: 1px solid #fca5a5; }
@@ -50,16 +61,32 @@
         .legend-color.tarea { background: #1e3a8a; }
         .legend-color.hito { background: #c8102e; width: 14px; height: 14px; border-radius: 50%; transform: rotate(45deg); }
         .legend-color.resumen { background: #94a3b8; height: 10px; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(30,58,138,0.4); z-index: 1000; justify-content: center; align-items: center; padding: 16px; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: 16px; padding: 28px 30px; width: 100%; max-width: 600px; border-top: 5px solid #c8102e; }
+        .modal h2 { color: #1e3a8a; margin-top: 0; }
+        .modal p { font-size: .85rem; color: #475569; line-height: 1.5; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #1e3a8a; margin-bottom: 6px; text-transform: uppercase; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1><i class="fas fa-chart-gantt"></i> Cronograma SCADA HEMCO</h1>
+    <h1><i class="fas fa-chart-gantt"></i> Cronograma SCADA HEMCO — Edición</h1>
     <div class="subhead">
-        <div class="project-meta"><i class="fas fa-calendar-alt"></i> <span id="projectDate">Mon 28/9/26</span></div>
-        <div class="head-right">
-            <div><span class="badge-view">Solo lectura</span><span class="updated" id="updatedAt"></span></div>
-            <button class="btn-export" id="exportExcelBtn" disabled><i class="fas fa-file-excel"></i> Exportar a Excel</button>
+        <div class="project-meta"><i class="fas fa-calendar-alt"></i> <span contenteditable="true" id="projectDate">Mon 28/9/26</span></div>
+        <div class="toolbar">
+            <span id="sessionBadge" class="session off">Sin sesión</span>
+            <button class="btn btn-success" id="addTaskBtn"><i class="fas fa-plus"></i> Agregar fila</button>
+            <button class="btn btn-warning" id="publishBtn"><i class="fas fa-cloud-upload-alt"></i> Publicar</button>
+            <button class="btn" id="refreshGanttBtn"><i class="fas fa-sync-alt"></i> Actualizar Gantt</button>
+            <button class="btn-excel" id="exportExcelBtn"><i class="fas fa-file-excel"></i> Exportar a Excel</button>
+            <button class="btn" id="saveJsonBtn" title="Respaldo manual"><i class="fas fa-download"></i> Exportar JSON</button>
+            <button class="btn btn-secondary" id="clearAllBtn"><i class="fas fa-broom"></i> Limpiar todo</button>
+            <button class="btn btn-secondary" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
         </div>
     </div>
 
@@ -74,6 +101,7 @@
                     <th style="width: 120px;">Fin</th>
                     <th style="width: 100px;">Tipo</th>
                     <th style="width: 90px;">Progreso</th>
+                    <th style="width: 70px;">Acción</th>
                 </tr>
             </thead>
             <tbody id="taskTableBody"></tbody>
@@ -91,58 +119,216 @@
     </div>
 </div>
 
+<!-- Modal: agregar tarea -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h2><i class="fas fa-plus-circle"></i> Agregar tarea</h2>
+        <div class="form-group"><label>Nombre</label><input type="text" id="newName"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Tipo</label>
+                <select id="newType"><option value="tarea">Tarea</option><option value="hito">Hito</option><option value="resumen">Resumen</option></select>
+            </div>
+            <div class="form-group"><label>Duración</label><input type="text" id="newDuration" value="1 day"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Inicio</label><input type="date" id="newStart"></div>
+            <div class="form-group"><label>Fin</label><input type="date" id="newFinish"></div>
+        </div>
+        <div class="form-group"><label>Progreso (%)</label><input type="number" id="newProgress" value="0" min="0" max="100"></div>
+        <div class="modal-actions">
+            <button class="btn" id="cancelModalBtn">Cancelar</button>
+            <button class="btn btn-success" id="saveTaskBtn">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: iniciar sesión (token) -->
+<div class="modal-overlay" id="loginOverlay">
+    <div class="modal">
+        <h2><i class="fas fa-key"></i> Acceso de edición</h2>
+        <p>Pega el token de GitHub de la empresa editora. Queda guardado solo en este navegador. Sin token se puede mirar y probar cambios, pero no publicarlos.</p>
+        <div class="form-group"><label>Token</label><input type="password" id="tokenInput" placeholder="github_pat_..."></div>
+        <div class="modal-actions">
+            <button class="btn" id="cancelLoginBtn">Cancelar</button>
+            <button class="btn btn-success" id="confirmLoginBtn">Entrar y publicar</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
 (function() {
+    // ============ CONFIGURACIÓN — ajustar a tu repositorio ============
+    // Si la página está en GitHub Pages (usuario.github.io/repositorio/), usuario y repositorio
+    // se detectan solos desde la dirección. Los valores de abajo solo se usan fuera de GitHub Pages.
+    const GH = {
+        owner:  'MelanieVel20',
+        repo:   'cronograma-hemco',
+        branch: 'main',
+        path:   'data.json'
+    };
+    (function detectFromPages() {
+        const host = location.hostname.toLowerCase();
+        if (!host.endsWith('.github.io')) return;
+        GH.owner = host.replace('.github.io', '');
+        const first = location.pathname.split('/').filter(Boolean)[0];
+        GH.repo = (first && !first.includes('.')) ? first : host;   // sitio raíz = repo usuario.github.io
+    })();
+    const API_URL = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}`;
+    const TOKEN_KEY = 'gh_token_scada_hemco';
+
+    // ============ ESTADO ============
     const tbody = document.getElementById('taskTableBody');
     const ganttEl = document.getElementById('gantt');
-    let currentTasks = [];
-    let ganttSource = [];
+    let ganttSource = [];      // tareas que realmente se dibujan en el Gantt (mismo orden que las barras)
+    let currentSha = null;     // versión de data.json cargada (detecta si otro publicó mientras editabas)
+    let memToken = '';
+    window.currentTasks = [];
 
+    // ============ UTILIDADES ============
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const pad = n => String(n).padStart(2, '0');
-    const addDaysISO = (iso, n) => { const [y,m,d] = iso.split('-').map(Number); const x = new Date(y, m-1, d+n); return `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`; };
+    const localISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;   // sin desfase de zona horaria
+    const addDaysISO = (iso, n) => { const [y,m,d] = iso.split('-').map(Number); return localISO(new Date(y, m-1, d+n)); };
+    const b64encode = str => btoa(unescape(encodeURIComponent(str)));
+    const b64decode = str => decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
 
-    // Siempre la versión más reciente publicada (sin caché)
-    function load() {
-        fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
-            .then(r => r.ok ? r.json() : [])
-            .then(data => {
-                const json = JSON.stringify(data);
-                if (json === JSON.stringify(currentTasks)) return;   // sin cambios
-                currentTasks = Array.isArray(data) ? data : [];
-                renderTable(currentTasks);
-                renderGantt();
-                document.getElementById('updatedAt').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' });
-            })
-            .catch(() => {
-                if (!currentTasks.length)
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">No se pudo cargar data.json</td></tr>';
-            });
+    function getToken() { try { return localStorage.getItem(TOKEN_KEY) || memToken; } catch(e) { return memToken; } }
+    function setToken(t) { memToken = t; try { localStorage.setItem(TOKEN_KEY, t); } catch(e) {} updateBadge(); }
+    function clearToken() { memToken = ''; try { localStorage.removeItem(TOKEN_KEY); } catch(e) {} updateBadge(); }
+    function updateBadge() {
+        const b = document.getElementById('sessionBadge');
+        const on = !!getToken();
+        b.className = 'session ' + (on ? 'on' : 'off');
+        b.textContent = on ? 'Editor conectado' : 'Sin sesión';
+    }
+    const authHeaders = t => ({ Authorization: 'Bearer ' + t, Accept: 'application/vnd.github+json' });
+
+    // ============ CARGAR DATOS ============
+    async function loadData() {
+        const token = getToken();
+        if (token) {
+            try {
+                const r = await fetch(`${API_URL}?ref=${GH.branch}`, { headers: authHeaders(token), cache: 'no-store' });
+                if (r.ok) {
+                    const j = await r.json();
+                    currentSha = j.sha;
+                    return JSON.parse(b64decode(j.content));
+                }
+            } catch(e) {}
+        }
+        // Sin token: lee la copia publicada (evitando caché)
+        try {
+            const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' });
+            return r.ok ? await r.json() : [];
+        } catch(e) { return []; }
     }
 
+    // ============ PUBLICAR (solo quien tiene token) ============
+    async function publish(token) {
+        syncFromTable();
+        const btn = document.getElementById('publishBtn');
+        btn.disabled = true;
+        try {
+            const headers = authHeaders(token);
+            // Si no tenemos la versión, la pedimos
+            if (!currentSha) {
+                const g = await fetch(`${API_URL}?ref=${GH.branch}`, { headers, cache: 'no-store' });
+                if (g.status === 401 || g.status === 403) { clearToken(); alert('Token inválido o sin permiso de escritura.'); return; }
+                if (g.ok) currentSha = (await g.json()).sha;
+            }
+            const body = {
+                message: 'Actualiza cronograma HEMCO – ' + new Date().toLocaleString('es-NI'),
+                content: b64encode(JSON.stringify(window.currentTasks, null, 2)),
+                branch: GH.branch
+            };
+            if (currentSha) body.sha = currentSha;
+            const p = await fetch(API_URL, { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (p.ok) {
+                currentSha = (await p.json()).content.sha;
+                alert('✅ Publicado. La vista de solo lectura mostrará los cambios en 1–2 minutos.');
+            } else if (p.status === 404) {
+                alert('❌ GitHub no encuentra el repositorio o el token no tiene acceso.\n\n' +
+                      'Usuario: ' + GH.owner + '\nRepositorio: ' + GH.repo + '\nRama: ' + GH.branch + '\n\n' +
+                      'Revisa que:\n• El repositorio exista con ese nombre y esa rama.\n' +
+                      '• El token incluya ESE repositorio con Contents: Read and write.\n' +
+                      '• Si el repo es de una organización, el token se creó con esa organización como "Resource owner".');
+                clearToken();
+            } else if (p.status === 409) {
+                alert('⚠️ Alguien publicó otra versión mientras editabas.\nExporta tu JSON como respaldo y recarga la página antes de volver a publicar.');
+            } else if (p.status === 401 || p.status === 403) {
+                clearToken();
+                alert('Token inválido o sin permiso de escritura.');
+            } else {
+                const e = await p.json().catch(() => ({}));
+                alert('Error al publicar: ' + (e.message || p.status));
+            }
+        } catch(e) {
+            alert('No se pudo conectar con GitHub: ' + e.message);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ============ TABLA ============
     function renderTable(tasks) {
         tbody.innerHTML = '';
         if (tasks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">No hay tareas publicadas.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">No hay tareas. Agrega una.</td></tr>`;
             return;
         }
-        tasks.forEach(task => {
+        tasks.forEach((task, index) => {
             const tr = document.createElement('tr');
             const typeClass = task.type === 'hito' ? 'task-hito' : task.type === 'resumen' ? 'task-resumen' : '';
             tr.innerHTML = `
-                <td><span class="cell">${esc(task.id)}</span></td>
-                <td><span class="cell ${typeClass}" title="${esc(task.name)}">${esc(task.name)}</span></td>
-                <td><span class="cell">${esc(task.duration)}</span></td>
-                <td><span class="cell">${esc(task.start)}</span></td>
-                <td><span class="cell">${esc(task.finish)}</span></td>
-                <td><span class="cell">${esc(task.type || 'tarea')}</span></td>
-                <td><span class="cell">${esc(task.progress || 0)}%</span></td>`;
+                <td><div class="editable-cell" contenteditable="true" data-field="id" data-index="${index}">${esc(task.id)}</div></td>
+                <td><div class="editable-cell ${typeClass}" contenteditable="true" data-field="name" data-index="${index}">${esc(task.name)}</div></td>
+                <td><div class="editable-cell" contenteditable="true" data-field="duration" data-index="${index}">${esc(task.duration)}</div></td>
+                <td><div class="editable-cell" contenteditable="true" data-field="start" data-index="${index}">${esc(task.start)}</div></td>
+                <td><div class="editable-cell" contenteditable="true" data-field="finish" data-index="${index}">${esc(task.finish)}</div></td>
+                <td><div class="editable-cell" contenteditable="true" data-field="type" data-index="${index}">${esc(task.type || 'tarea')}</div></td>
+                <td><div class="editable-cell" contenteditable="true" data-field="progress" data-index="${index}">${esc(task.progress || 0)}</div></td>
+                <td><button class="btn-danger" data-index="${index}"><i class="fas fa-trash"></i></button></td>`;
             tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll('.editable-cell').forEach(el => {
+            el.addEventListener('blur', function() {
+                const i = parseInt(this.dataset.index), f = this.dataset.field;
+                let v = this.innerText.trim();
+                if (f === 'progress') v = Math.min(100, Math.max(0, parseFloat(v) || 0));
+                if (window.currentTasks[i]) window.currentTasks[i][f] = v;
+            });
+        });
+        tbody.querySelectorAll('.btn-danger').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const i = parseInt(this.dataset.index);
+                if (confirm('¿Eliminar esta fila?')) {
+                    window.currentTasks.splice(i, 1);
+                    renderTable(window.currentTasks);
+                    renderGantt();
+                }
+            });
         });
     }
 
+    function syncFromTable() {
+        const newTasks = [];
+        tbody.querySelectorAll('tr').forEach(row => {
+            const c = row.querySelectorAll('.editable-cell');
+            if (c.length >= 7) {
+                newTasks.push({
+                    id: c[0].innerText.trim(), name: c[1].innerText.trim(),
+                    duration: c[2].innerText.trim(), start: c[3].innerText.trim(),
+                    finish: c[4].innerText.trim(), type: c[5].innerText.trim() || 'tarea',
+                    progress: Math.min(100, Math.max(0, parseFloat(c[6].innerText.trim()) || 0))
+                });
+            }
+        });
+        window.currentTasks = newTasks;
+    }
+
+    // ============ GANTT ============
     function buildGanttTasks(tasks) {
         ganttSource = tasks.filter(t => t.name && t.start && t.finish);
         return ganttSource.map((t, i) => {
@@ -162,7 +348,7 @@
         if (!document.querySelector('#gantt svg')) return;
         const cRect = container.getBoundingClientRect();
         document.querySelectorAll('#gantt .bar').forEach((bar, idx) => {
-            const task = ganttSource[idx];
+            const task = ganttSource[idx];   // mismo orden que las barras dibujadas
             if (!task) return;
             const bRect = bar.getBoundingClientRect();
             const label = document.createElement('div');
@@ -175,17 +361,26 @@
     }
 
     function renderGantt() {
-        const tasks = buildGanttTasks(currentTasks);
+        const tasks = buildGanttTasks(window.currentTasks);
         ganttEl.innerHTML = '';
         document.querySelectorAll('.gantt-label-overlay').forEach(el => el.remove());
         if (tasks.length === 0) {
-            ganttEl.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">Sin datos.</div>';
+            ganttEl.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">Agrega tareas para ver el Gantt.</div>';
             return;
         }
         new Gantt('#gantt', tasks, {
             header_height: 50, column_width: 30, step: 24, bar_height: 22,
             bar_corner_radius: 3, padding: 18, view_mode: 'Month',
-            date_format: 'YYYY-MM-DD', language: 'es'
+            date_format: 'YYYY-MM-DD', language: 'es',
+            on_date_change: (task, start, end) => {
+                const i = window.currentTasks.findIndex(t => String(t.id) === task.id);
+                if (i !== -1) {
+                    window.currentTasks[i].start = localISO(new Date(start));
+                    window.currentTasks[i].finish = localISO(new Date(end));
+                    renderTable(window.currentTasks);
+                    setTimeout(overlayLabels, 50);
+                }
+            }
         });
         setTimeout(() => {
             document.querySelectorAll('#gantt .bar').forEach((bar, idx) => {
@@ -203,52 +398,347 @@
         }, 150);
     }
 
-    // ============ EXPORTAR A EXCEL ============
-    // Fecha 'YYYY-MM-DD' -> número de serie de Excel (fecha real, sin desfase de zona horaria)
-    function excelDate(iso) {
-        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
-        if (!m) return { t: 's', v: String(iso || '') };
-        const serial = (Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 86400000;
-        return { t: 'n', v: serial, z: 'dd/mm/yyyy' };
-    }
+    // ============ EXPORTAR A EXCEL (con formato) ============
+    function buildWorkbook(ExcelJS, tasks, projectDate) {
+        const C = {
+            navy: 'FF1E3A8A', navyDark: 'FF172554', red: 'FFC8102E', redSoft: 'FFFEE2E2',
+            blueSoft: 'FFDBEAFE', blueRow: 'FFF5F8FF', gray: 'FF94A3B8', graySoft: 'FFF1F5F9',
+            text: 'FF1E293B', muted: 'FF64748B', border: 'FFE2E8F0', white: 'FFFFFFFF'
+        };
+        const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+        const thin = { style: 'thin', color: { argb: C.border } };
+        const box = { top: thin, left: thin, bottom: thin, right: thin };
+        const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        const TIPO = { tarea: 'Tarea', hito: 'Hito', resumen: 'Resumen' };
+        const p2 = n => String(n).padStart(2, '0');
+        const toDate = iso => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
+            return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
+        };
+        const now = new Date();
+        const exportado = `${p2(now.getDate())}/${p2(now.getMonth()+1)}/${now.getFullYear()} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
 
-    function exportExcel() {
-        if (!currentTasks.length) return alert('No hay tareas para exportar.');
-        if (typeof XLSX === 'undefined') return alert('No se pudo cargar el componente de Excel. Revisa tu conexión y recarga la página.');
+        const tareas = tasks.filter(t => (t.type || 'tarea') === 'tarea');
+        const hitos = tasks.filter(t => t.type === 'hito');
+        const avance = tareas.length ? tareas.reduce((s, t) => s + (parseFloat(t.progress) || 0), 0) / tareas.length / 100 : 0;
 
-        const tipoTxt = { tarea: 'Tarea', hito: 'Hito', resumen: 'Resumen' };
-        const rows = [['ID', 'Nombre de tarea', 'Duración', 'Inicio', 'Fin', 'Tipo', 'Progreso']];
-        currentTasks.forEach(t => {
-            rows.push([
-                String(t.id ?? ''),
-                String(t.name ?? ''),
-                String(t.duration ?? ''),
-                excelDate(t.start),
-                excelDate(t.finish),
-                tipoTxt[t.type] || t.type || 'Tarea',
-                { t: 'n', v: (parseFloat(t.progress) || 0) / 100, z: '0%' }
-            ]);
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'MISSA'; wb.created = now; wb.title = 'Cronograma SCADA HEMCO';
+
+        // ---------- Hoja 1: Cronograma ----------
+        const ws = wb.addWorksheet('Cronograma', {
+            views: [{ state: 'frozen', ySplit: 5, showGridLines: false }],
+            pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+                         margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 }, printTitlesRow: '5:5' },
+            headerFooter: { oddFooter: '&L&8Cronograma SCADA HEMCO&R&8Página &P de &N' }
+        });
+        ws.columns = [{ width: 7 }, { width: 50 }, { width: 13 }, { width: 13 }, { width: 13 }, { width: 12 }, { width: 11 }, { width: 14 }];
+
+        ws.mergeCells('A1:H1');
+        ws.getCell('A1').value = 'Cronograma SCADA HEMCO';
+        ws.getCell('A1').font = { name: 'Calibri', size: 18, bold: true, color: { argb: C.white } };
+        ws.getCell('A1').fill = fill(C.navy);
+        ws.getCell('A1').alignment = { vertical: 'middle', indent: 1 };
+        ws.getRow(1).height = 36;
+
+        ws.mergeCells('A2:H2');
+        ws.getCell('A2').value = `Fecha del proyecto: ${projectDate || '—'}     ·     Exportado: ${exportado}`;
+        ws.getCell('A2').font = { size: 10, italic: true, color: { argb: C.white } };
+        ws.getCell('A2').fill = fill(C.navyDark);
+        ws.getCell('A2').alignment = { vertical: 'middle', indent: 1 };
+        ws.getRow(2).height = 20;
+
+        // Fila de indicadores
+        const kpis = [['A3:B3', `Actividades: ${tasks.length}`], ['C3:D3', `Hitos: ${hitos.length}`], ['E3:H3', null]];
+        kpis.forEach(([rng, txt]) => {
+            ws.mergeCells(rng);
+            const cell = ws.getCell(rng.split(':')[0]);
+            cell.value = txt;
+            cell.font = { bold: true, size: 11, color: { argb: C.navy } };
+            cell.fill = fill(C.blueSoft);
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
+        ws.getCell('E3').value = { richText: [
+            { text: 'Avance promedio de tareas: ', font: { bold: true, size: 11, color: { argb: C.navy } } },
+            { text: `${Math.round(avance * 100)}%`, font: { bold: true, size: 12, color: { argb: C.red } } }
+        ] };
+        ws.getRow(3).height = 24;
+        ws.getRow(4).height = 6;
+
+        const header = ws.getRow(5);
+        header.values = ['ID', 'Nombre de tarea', 'Duración', 'Inicio', 'Fin', 'Tipo', 'Progreso', 'Estado'];
+        header.height = 24;
+        header.eachCell(cell => {
+            cell.font = { bold: true, color: { argb: C.white }, size: 11 };
+            cell.fill = fill(C.navy);
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = { top: thin, left: thin, right: thin, bottom: { style: 'medium', color: { argb: C.red } } };
         });
 
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{ wch: 6 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 11 }, { wch: 10 }];
-        ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length - 1, c: 6 } }) };
+        let r = 6;
+        tasks.forEach((t, i) => {
+            const type = t.type || 'tarea';
+            const row = ws.getRow(r);
+            row.values = [
+                String(t.id ?? ''),
+                (type === 'hito' ? '◆ ' : '') + String(t.name ?? ''),
+                String(t.duration ?? ''),
+                toDate(t.start) || String(t.start ?? ''),
+                toDate(t.finish) || String(t.finish ?? ''),
+                TIPO[type] || type,
+                (parseFloat(t.progress) || 0) / 100,
+                ''
+            ];
+            row.height = 20;
+            const bg = type === 'resumen' ? C.graySoft : type === 'hito' ? 'FFFFF5F5' : (i % 2 ? C.blueRow : C.white);
+            row.eachCell({ includeEmpty: true }, (cell, col) => {
+                cell.fill = fill(bg);
+                cell.border = box;
+                cell.alignment = { vertical: 'middle', horizontal: col === 2 ? 'left' : 'center', indent: col === 2 ? 1 : 0 };
+                cell.font = { size: 10.5, color: { argb: C.text } };
+                if (type === 'resumen') cell.font = { size: 10.5, bold: true, italic: true, color: { argb: 'FF334155' } };
+                if (type === 'hito') cell.font = { size: 10.5, bold: true, color: { argb: C.red } };
+            });
+            row.getCell(4).numFmt = 'dd/mm/yyyy';
+            row.getCell(5).numFmt = 'dd/mm/yyyy';
+            row.getCell(7).numFmt = '0%';
+            const tipoCell = row.getCell(6);
+            tipoCell.font = { size: 9.5, bold: true, color: { argb: type === 'hito' ? C.red : type === 'resumen' ? C.muted : C.navy } };
+            // Estado según avance (colores fijos: abren bien en cualquier Excel)
+            const pct = parseFloat(t.progress) || 0;
+            const est = pct >= 100 ? (type === 'hito' ? ['Cumplido', 'FFDCFCE7', 'FF166534'] : ['Completado', 'FFDCFCE7', 'FF166534'])
+                      : pct > 0 ? ['En curso', 'FFFEF3C7', 'FF92400E'] : ['Pendiente', C.graySoft, C.muted];
+            const estCell = row.getCell(8);
+            estCell.value = est[0];
+            estCell.fill = fill(est[1]);
+            estCell.font = { size: 9.5, bold: true, color: { argb: est[2] } };
+            const pCell = row.getCell(7);
+            pCell.fill = fill(est[1]);
+            pCell.font = { size: 10.5, bold: true, color: { argb: est[2] } };
+            r++;
+        });
+        const last = r - 1;
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Cronograma');
-        const d = new Date();
-        XLSX.writeFile(wb, `Cronograma_SCADA_HEMCO_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.xlsx`);
+        if (last >= 6) ws.autoFilter = { from: 'A5', to: `H${last}` };
+
+        ws.mergeCells(`A${last + 2}:H${last + 2}`);
+        ws.getCell(`A${last + 2}`).value = 'Generado desde el cronograma en línea. Los datos corresponden a la última versión publicada.';
+        ws.getCell(`A${last + 2}`).font = { size: 9, italic: true, color: { argb: C.muted } };
+
+        // ---------- Hoja 2: Gantt semanal ----------
+        const dated = tasks.map(t => ({ t, s: toDate(t.start), f: toDate(t.finish) })).filter(x => x.s && x.f);
+        if (dated.length) {
+            const DAY = 86400000;
+            const minS = new Date(Math.min(...dated.map(x => x.s.getTime())));
+            const maxF = new Date(Math.max(...dated.map(x => x.f.getTime())));
+            const monday = new Date(minS.getTime() - ((minS.getUTCDay() + 6) % 7) * DAY);
+            const weeks = [];
+            for (let w = monday.getTime(); w <= maxF.getTime() && weeks.length < 260; w += 7 * DAY) weeks.push(new Date(w));
+
+            const FIRST = 5;   // primera columna de semanas (E)
+            const lastCol = FIRST + weeks.length - 1;
+            const gs = wb.addWorksheet('Gantt', {
+                views: [{ state: 'frozen', xSplit: 4, ySplit: 4, showGridLines: false }],
+                pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+                             margins: { left: 0.3, right: 0.3, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 }, printTitlesRow: '3:4' }
+            });
+            gs.getColumn(1).width = 6; gs.getColumn(2).width = 40; gs.getColumn(3).width = 11; gs.getColumn(4).width = 11;
+            weeks.forEach((_, i) => { gs.getColumn(FIRST + i).width = 5.2; });
+
+            gs.mergeCells(1, 1, 1, lastCol);
+            gs.getCell(1, 1).value = 'Diagrama de Gantt · SCADA HEMCO (vista semanal)';
+            gs.getCell(1, 1).font = { size: 16, bold: true, color: { argb: C.white } };
+            gs.getCell(1, 1).fill = fill(C.navy);
+            gs.getCell(1, 1).alignment = { vertical: 'middle', indent: 1 };
+            gs.getRow(1).height = 32;
+
+            // Leyenda
+            gs.mergeCells(2, 1, 2, lastCol);
+            gs.getCell(2, 1).value = { richText: [
+                { text: '■ ', font: { color: { argb: C.navy }, size: 12 } }, { text: 'Tarea     ', font: { size: 10, color: { argb: C.text } } },
+                { text: '■ ', font: { color: { argb: C.gray }, size: 12 } }, { text: 'Resumen     ', font: { size: 10, color: { argb: C.text } } },
+                { text: '◆ ', font: { color: { argb: C.red }, size: 12 } }, { text: 'Hito     ', font: { size: 10, color: { argb: C.text } } },
+                { text: `Exportado: ${exportado}`, font: { size: 9, italic: true, color: { argb: C.muted } } }
+            ] };
+            gs.getCell(2, 1).fill = fill(C.blueSoft);
+            gs.getCell(2, 1).alignment = { vertical: 'middle', indent: 1 };
+            gs.getRow(2).height = 20;
+
+            // Encabezados: meses (fila 3) y semanas (fila 4)
+            ['ID', 'Actividad', 'Inicio', 'Fin'].forEach((h, i) => {
+                gs.mergeCells(3, i + 1, 4, i + 1);
+                const c = gs.getCell(3, i + 1);
+                c.value = h;
+                c.font = { bold: true, color: { argb: C.white } };
+                c.fill = fill(C.navy);
+                c.alignment = { vertical: 'middle', horizontal: 'center' };
+                c.border = box;
+            });
+            let startIdx = 0;
+            for (let i = 1; i <= weeks.length; i++) {
+                const cur = weeks[startIdx], nxt = weeks[i];
+                if (i === weeks.length || nxt.getUTCMonth() !== cur.getUTCMonth()) {
+                    const c1 = FIRST + startIdx, c2 = FIRST + i - 1;
+                    if (c2 > c1) gs.mergeCells(3, c1, 3, c2);
+                    const c = gs.getCell(3, c1);
+                    c.value = `${MESES[cur.getUTCMonth()]} ${cur.getUTCFullYear()}`;
+                    c.font = { bold: true, color: { argb: C.white }, size: 10 };
+                    c.fill = fill(C.navyDark);
+                    c.alignment = { horizontal: 'center', vertical: 'middle' };
+                    c.border = box;
+                    startIdx = i;
+                }
+            }
+            weeks.forEach((w, i) => {
+                const c = gs.getCell(4, FIRST + i);
+                c.value = p2(w.getUTCDate());
+                c.font = { size: 8.5, bold: true, color: { argb: C.navy } };
+                c.fill = fill(C.blueSoft);
+                c.alignment = { horizontal: 'center', vertical: 'middle' };
+                c.border = box;
+            });
+            gs.getRow(3).height = 18; gs.getRow(4).height = 16;
+
+            dated.forEach(({ t, s, f }, i) => {
+                const row = 5 + i, type = t.type || 'tarea';
+                const r0 = gs.getRow(row);
+                r0.height = 18;
+                const vals = [String(t.id ?? ''), (type === 'hito' ? '◆ ' : '') + String(t.name ?? ''), s, f];
+                vals.forEach((v, k) => {
+                    const c = gs.getCell(row, k + 1);
+                    c.value = v;
+                    c.border = box;
+                    c.alignment = { vertical: 'middle', horizontal: k === 1 ? 'left' : 'center', indent: k === 1 ? 1 : 0 };
+                    c.font = { size: 10, color: { argb: type === 'hito' ? C.red : C.text }, bold: type !== 'tarea', italic: type === 'resumen' };
+                    if (type === 'resumen') c.fill = fill(C.graySoft);
+                });
+                gs.getCell(row, 3).numFmt = 'dd/mm/yy';
+                gs.getCell(row, 4).numFmt = 'dd/mm/yy';
+                weeks.forEach((w, k) => {
+                    const c = gs.getCell(row, FIRST + k);
+                    const wEnd = w.getTime() + 6 * DAY;
+                    const vBorder = { left: { style: 'hair', color: { argb: C.border } }, right: { style: 'hair', color: { argb: C.border } },
+                                      top: thin, bottom: thin };
+                    c.border = vBorder;
+                    if (type === 'hito') {
+                        if (s.getTime() >= w.getTime() && s.getTime() <= wEnd) {
+                            c.value = '◆';
+                            c.font = { color: { argb: C.red }, bold: true, size: 12 };
+                            c.alignment = { horizontal: 'center', vertical: 'middle' };
+                        }
+                    } else if (w.getTime() <= f.getTime() && wEnd >= s.getTime()) {
+                        c.fill = fill(type === 'resumen' ? C.gray : C.navy);
+                    }
+                });
+            });
+        }
+        return wb;
     }
 
-    document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
-    const _renderTable = renderTable;
-    renderTable = function(tasks) {
-        _renderTable(tasks);
-        document.getElementById('exportExcelBtn').disabled = !tasks.length;
-    };
+    async function exportExcel(tasks) {
+        if (!tasks || !tasks.length) return alert('No hay tareas para exportar.');
+        if (typeof ExcelJS === 'undefined') return alert('No se pudo cargar el componente de Excel. Revisa tu conexión y recarga la página.');
+        const btn = document.getElementById('exportExcelBtn');
+        if (btn) btn.disabled = true;
+        try {
+            const projectDate = (document.getElementById('projectDate') || {}).textContent || '';
+            const wb = buildWorkbook(ExcelJS, tasks, projectDate.trim());
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const d = new Date(), p2 = n => String(n).padStart(2, '0');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Cronograma_SCADA_HEMCO_${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}.xlsx`;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        } catch (e) {
+            alert('No se pudo generar el Excel: ' + e.message);
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
 
-    load();
-    setInterval(load, 120000);   // revisa cambios cada 2 minutos
+    // ============ BOTONES ============
+    document.getElementById('exportExcelBtn').addEventListener('click', () => { syncFromTable(); exportExcel(window.currentTasks); });
+    const loginModal = document.getElementById('loginOverlay');
+    document.getElementById('publishBtn').addEventListener('click', () => {
+        const t = getToken();
+        if (t) publish(t);
+        else { document.getElementById('tokenInput').value = ''; loginModal.classList.add('active'); }
+    });
+    document.getElementById('confirmLoginBtn').addEventListener('click', () => {
+        const t = document.getElementById('tokenInput').value.trim();
+        if (!t) return alert('Pega el token.');
+        setToken(t);
+        loginModal.classList.remove('active');
+        publish(t);
+    });
+    document.getElementById('cancelLoginBtn').addEventListener('click', () => loginModal.classList.remove('active'));
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm('¿Olvidar el token en este navegador?')) clearToken();
+    });
+
+    document.getElementById('saveJsonBtn').addEventListener('click', () => {
+        syncFromTable();
+        const blob = new Blob([JSON.stringify(window.currentTasks, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'data.json'; a.click();
+        URL.revokeObjectURL(url);
+    });
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+        if (confirm('¿Eliminar TODAS las tareas? (No se publica hasta que presiones Publicar)')) {
+            window.currentTasks = [];
+            renderTable(window.currentTasks);
+            renderGantt();
+        }
+    });
+    document.getElementById('refreshGanttBtn').addEventListener('click', () => {
+        syncFromTable();
+        renderTable(window.currentTasks);
+        renderGantt();
+    });
+
+    // ============ MODAL AGREGAR ============
+    const modal = document.getElementById('modalOverlay');
+    document.getElementById('addTaskBtn').addEventListener('click', () => {
+        const today = localISO(new Date());
+        document.getElementById('newName').value = '';
+        document.getElementById('newType').value = 'tarea';
+        document.getElementById('newDuration').value = '1 day';
+        document.getElementById('newStart').value = today;
+        document.getElementById('newFinish').value = addDaysISO(today, 1);
+        document.getElementById('newProgress').value = 0;
+        modal.classList.add('active');
+    });
+    document.getElementById('cancelModalBtn').addEventListener('click', () => modal.classList.remove('active'));
+    [modal, loginModal].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); }));
+    document.getElementById('saveTaskBtn').addEventListener('click', () => {
+        const name = document.getElementById('newName').value.trim();
+        if (!name) return alert('Ingresa un nombre');
+        syncFromTable();
+        window.currentTasks.push({
+            id: '', name,
+            duration: document.getElementById('newDuration').value,
+            start: document.getElementById('newStart').value,
+            finish: document.getElementById('newFinish').value,
+            type: document.getElementById('newType').value,
+            progress: parseInt(document.getElementById('newProgress').value) || 0
+        });
+        window.currentTasks.forEach((t, i) => t.id = String(i + 1));
+        renderTable(window.currentTasks);
+        renderGantt();
+        modal.classList.remove('active');
+    });
+
+    // ============ INICIO ============
+    updateBadge();
+    loadData().then(data => {
+        window.currentTasks = Array.isArray(data) ? data : [];
+        renderTable(window.currentTasks);
+        renderGantt();
+    });
 })();
 </script>
 </body>
